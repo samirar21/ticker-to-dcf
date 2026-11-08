@@ -1,0 +1,14 @@
+{
+  "name": "ticker-to-dcf",
+  "version": "1.0.0",
+  "description": "Type a ticker, pull 10-K financials from SEC EDGAR, and value the company with a live, interactive DCF.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ticker to DCF</title>
+  <meta name="description" content="Type a ticker, pull 10-K financials from SEC EDGAR, and value the company with a live DCF." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f5eff'/><path d='M7 22l6-7 5 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo" aria-hidden="true"></span>Ticker&nbsp;→&nbsp;DCF</div>
+    <form id="search" class="search" autocomplete="off">
+      <input id="ticker" name="ticker" placeholder="Ticker, e.g. AAPL" aria-label="Ticker" spellcheck="false" />
+      <button type="submit">Value it</button>
+    </form>
+  </header>
+
+  <main id="app">
+    <section id="empty" class="empty">
+      <h1>Type a ticker. Get a DCF.</h1>
+      <p>Pulls historical financials from the 10-K filings in SEC EDGAR, projects unlevered free cash flow, and values the company two ways. You can drag every assumption and see the result update live.</p>
+      <div class="chips">
+        <button data-t="AAPL">AAPL</button><button data-t="MSFT">MSFT</button><button data-t="NVDA">NVDA</button>
+        <button data-t="COST">COST</button><button data-t="KO">KO</button><button data-t="NKE">NKE</button><button data-t="UBER">UBER</button>
+      </div>
+    </section>
+
+    <section id="loading" class="empty" hidden><div class="spinner"></div><p>Pulling 10-K data from SEC EDGAR…</p></section>
+    <section id="error" class="empty" hidden><h2>Couldn't value that one</h2><p id="error-msg"></p></section>
+
+    <div id="model" hidden>
+      <section class="hero">
+        <div>
+          <div class="co-name" id="co-name"></div>
+          <div class="co-meta" id="co-meta"></div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><span>Share price</span><strong id="k-price">—</strong></div>
+          <div class="kpi accent"><span>Implied value <em id="k-method">(blended)</em></span><strong id="k-value">—</strong></div>
+          <div class="kpi"><span>Upside</span><strong id="k-upside">—</strong></div>
+          <div class="kpi"><span>WACC</span><strong id="k-wacc">—</strong></div>
+        </div>
+      </section>
+      <div id="warnings"></div>
+
+      <div class="layout">
+        <aside class="panel controls" id="controls">
+          <div class="panel-head"><h2>Assumptions</h2><button class="ghost" id="reset">Reset</button></div>
+
+          <h3>Discount rate</h3>
+          <div class="ctl" data-key="wacc"></div>
+          <details class="wacc-build">
+            <summary>WACC build-up (CAPM)</summary>
+            <div class="ctl" data-key="riskFree"></div>
+            <div class="ctl" data-key="beta"></div>
+            <div class="ctl" data-key="erp"></div>
+            <div class="ctl" data-key="preTaxKd"></div>
+            <div id="wacc-table" class="mini"></div>
+          </details>
+
+          <h3>Terminal value</h3>
+          <div class="ctl" data-key="terminalGrowth"></div>
+          <div class="ctl" data-key="exitMultiple"></div>
+          <div class="seg" role="radiogroup" aria-label="Headline method">
+            <button data-method="blended" class="on">Blended</button><button data-method="gordon">Perpetuity</button><button data-method="exit">Exit multiple</button>
+          </div>
+
+          <h3>Operations</h3>
+          <div class="ctl" data-key="growthY1"></div>
+          <div class="ctl" data-key="growthYN"></div>
+          <div class="ctl" data-key="ebitMargin"></div>
+          <div class="ctl" data-key="taxRate"></div>
+          <div class="ctl" data-key="daPct"></div>
+          <div class="ctl" data-key="capexPct"></div>
+          <div class="ctl" data-key="nwcPct"></div>
+          <label class="check"><input type="checkbox" id="midYear" checked /> Mid-year convention</label>
+
+          <h3>Equity bridge inputs</h3>
+          <div class="num-grid">
+            <label>Share price<input type="number" step="0.01" id="in-price" /></label>
+            <label>Diluted shares (M)<input type="number" step="0.1" id="in-shares" /></label>
+            <label>Total debt (<span class="u"></span>)<input type="number" step="0.1" id="in-debt" /></label>
+            <label>Cash + ST inv. (<span class="u"></span>)<input type="number" step="0.1" id="in-cash" /></label>
+          </div>
+        </aside>
+
+        <div class="main-col">
+          <section class="panel">
+            <div class="panel-head"><h2>Football field</h2><span class="hint">Implied value per share</span></div>
+            <div id="football" class="football"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Sensitivity</h2>
+              <div class="seg small" id="sens-mode"><button data-mode="price" class="on">$ / share</button><button data-mode="upside">Upside %</button></div>
+            </div>
+            <div class="sens-wrap">
+              <div><h4>Perpetuity growth method <span>WACC ↓ · Terminal growth →</span></h4><div id="sens-g"></div></div>
+              <div><h4>Exit multiple method <span>WACC ↓ · EV/EBITDA →</span></h4><div id="sens-m"></div></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Valuation summary</h2></div>
+            <div class="summary-grid" id="summary"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Unlevered free cash flow build</h2><button class="ghost" id="csv">Download CSV</button></div>
+            <div class="table-scroll"><table id="model-table" class="model-table"></table></div>
+            <p class="foot" id="units-note"></p>
+          </section>
+
+          <section class="panel walk">
+            <div class="panel-head"><h2>Walk me through this DCF</h2><span class="hint">Updates with the model</span></div>
+            <ol id="walk"></ol>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="site-foot">Data: SEC EDGAR XBRL company facts (10-K) · market data from Yahoo Finance. For education, not investment advice.</footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
