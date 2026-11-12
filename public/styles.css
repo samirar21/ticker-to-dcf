@@ -42,11 +42,11 @@ h1, h2, h3, h4 { margin: 0; letter-spacing: -0.01em; }
   padding: 12px max(16px, calc((100vw - 1360px) / 2)); background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; white-space: nowrap; flex-shrink: 0; }
 .logo { width: 24px; height: 24px; border-radius: 7px; background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M7 22l6-7 5 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat; }
-.search { display: flex; gap: 8px; flex: 0 1 380px; }
+.search { display: flex; gap: 8px; flex: 0 1 380px; min-width: 0; }
 .search input {
-  flex: 1; min-width: 0; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel);
+  flex: 1; min-width: 0; width: 100%; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line); background: var(--panel);
   color: var(--ink); font: inherit; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
 }
 .search input::placeholder { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--ink-3); }
@@ -194,12 +194,26 @@ table.sens { width: 100%; border-collapse: separate; border-spacing: 2px; font-s
 .site-foot { text-align: center; color: var(--ink-3); font-size: 12px; padding: 0 16px 32px; }
 
 /* ---------- responsive ---------- */
+/* ---------- mobile value bar ---------- */
+.mobile-bar { display: none; }
+
 @media (max-width: 1080px) {
   .layout { grid-template-columns: 1fr; }
   .controls { position: static; max-height: none; }
   .sens-wrap, .summary-grid { grid-template-columns: 1fr; }
+  .mobile-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--panel) 92%, transparent);
+    backdrop-filter: blur(10px); border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(16, 24, 40, .06);
+  }
+  .mobile-bar span { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; color: var(--ink-3); }
+  .mobile-bar strong { display: block; font-size: 17px; line-height: 24px; letter-spacing: -0.01em; white-space: nowrap; }
+  .mobile-bar div:last-child strong { font-size: 14px; }
+  .mobile-bar div:first-child strong { color: var(--accent); }
+  body.has-model { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 }
 @media (max-width: 640px) {
+  .search input, .num-grid input { font-size: 16px; } /* stops iOS zooming in on focus */
   .brand { font-size: 0; gap: 0; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
   .ff-row, .ff-overlay { grid-template-columns: 96px minmax(0, 1fr); gap: 8px; }

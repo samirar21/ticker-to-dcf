@@ -115,6 +115,10 @@ function render() {
   ku.textContent = up == null ? '—' : `${up >= 0 ? '+' : ''}${pct(up)}`;
   ku.className = up == null ? '' : up >= 0 ? 'pos' : 'neg';
   $('#k-wacc').textContent = pct(r.wacc);
+  $('#m-value').textContent = px(value);
+  $('#m-upside').textContent = ku.textContent;
+  $('#m-upside').className = ku.className;
+  $('#m-rates').textContent = `${pct(r.wacc)} · ${pct(a.terminalGrowth, 2)}`;
   renderWaccTable(r);
   renderFootball(r, value);
   renderSensitivity(r);
@@ -300,7 +304,10 @@ function bindBridgeInputs() {
 }
 
 // ---------- loading ----------
-function show(id) { for (const s of ['empty', 'loading', 'error', 'model']) $(`#${s}`).hidden = s !== id; }
+function show(id) {
+  for (const s of ['empty', 'loading', 'error', 'model']) $(`#${s}`).hidden = s !== id;
+  document.body.classList.toggle('has-model', id === 'model');
+}
 
 async function load(ticker) {
   ticker = ticker.trim().toUpperCase();
