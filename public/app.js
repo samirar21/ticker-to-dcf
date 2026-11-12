@@ -258,7 +258,7 @@ function renderWalk(r, value, up) {
     `<b>Project unlevered free cash flow for ${a.years} years.</b> Revenue grows ${pct(a.growthY1)} in Year 1 and fades to ${pct(a.growthYN)} by Year ${a.years} (${pct(revCagr)} CAGR), reaching ${big(f.revenue)}. EBIT margin moves from ${pct(h.ebitMargin)} to ${pct(a.ebitMargin)}. UFCF = EBIT × (1 − ${pct(a.taxRate, 0)} tax) + D&A − capex − increase in NWC, which gives ${big(f.ufcf)} in Year ${a.years}.`,
     `<b>Discount at WACC.</b> ${a.useCustomWacc ? `I'm using a ${pct(r.wacc)} WACC (a manual override; CAPM gives ${pct(w.wacc)}).` : `Cost of equity is ${pct(a.riskFree, 2)} risk-free + ${a.beta.toFixed(2)} beta × ${pct(a.erp, 1)} ERP = ${pct(w.ke)}. After-tax cost of debt is ${pct(w.kd)}. At market-value weights of ${pct(w.wE, 0)} equity and ${pct(w.wD, 0)} debt, WACC is ${pct(r.wacc)}.`} The present value of the forecast cash flows is ${big(r.sumPv)}.`,
     `<b>Terminal value, two ways.</b> Perpetuity growth: ${big(f.ufcf)} × (1 + ${pct(a.terminalGrowth, 1)}) ÷ (${pct(r.wacc)} − ${pct(a.terminalGrowth, 1)}) = ${big(r.gordon.tv)}, which implies ${mult(r.gordon.impliedMultiple)} EBITDA. Exit multiple: ${mult(a.exitMultiple)} × Year-${a.years} EBITDA of ${big(f.ebitda)} = ${big(r.exit.tv)}, which implies ${pct(r.exit.impliedGrowth, 1)} growth forever. The PV of the terminal value is ${pct(r.gordon.tvShare, 0)} of EV under the perpetuity method.${tvShareWarn}`,
-    `<b>Bridge from enterprise value to equity value.</b> EV − ${big(a.debt)} debt + ${big(a.cash)} cash${a.minority ? ` − ${big(a.minority)} minority interest` : ''} = equity value. Divided by ${(a.shares / 1e6).toLocaleString(undefined, { maximumFractionDigits: 0 })}M shares, that's ${px(r.gordon.perShare)} (perpetuity) and ${px(r.exit.perShare)} (exit multiple).`,
+    `<b>Bridge from enterprise value to equity value.</b> EV − ${big(a.debt)} debt + ${big(a.cash)} cash${a.minority ? ` − ${big(a.minority)} minority interest` : ''} = equity value. Divided by ${a.shares ? (a.shares / 1e6).toLocaleString(undefined, { maximumFractionDigits: 0 }) + 'M' : 'an unknown number of'} shares${a.shares ? '' : ' (enter a share count under Equity bridge inputs)'}, that's ${px(r.gordon.perShare)} (perpetuity) and ${px(r.exit.perShare)} (exit multiple).`,
     `<b>So what?</b> The ${method === 'blended' ? 'blended' : method === 'gordon' ? 'perpetuity' : 'exit-multiple'} value is ${px(value)}${up != null ? ` against a ${px(a.price)} share price: ${up >= 0 ? 'upside' : 'downside'} of ${pct(Math.abs(up))}` : ''}. ${Math.abs(r.gordon.perShare / r.exit.perShare - 1) > 0.25 ? `The two methods disagree by more than 25%. The exit multiple needs ${pct(r.exit.impliedGrowth, 1)} perpetual growth to hold, which tells you the market is pricing in more growth than a ${pct(a.terminalGrowth, 1)} terminal rate.` : 'The two methods roughly agree, which is a good sign the terminal assumptions are internally consistent.'} The sensitivity tables show how much of that conclusion depends on WACC and terminal growth.`,
   ];
   $('#walk').innerHTML = items.map((t) => `<li>${t}</li>`).join('');
@@ -309,7 +309,7 @@ async function load(ticker) {
   if (location.hash.slice(1) !== ticker) history.replaceState(null, '', `#${ticker}`);
   show('loading');
   try {
-    const res = await fetch(`/api/company/${encodeURIComponent(ticker)}`);
+    const res = await fetch(`/api/company/${encodeURIComponent(ticker.replace(/\./g, '-'))}`);
     const body = await res.json();
     if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
     data = body;

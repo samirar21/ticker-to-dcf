@@ -161,7 +161,7 @@ export function runDCF(data, a) {
   exit.tvShare = pvTvM / exit.ev;
   exit.impliedGrowth = (tvM * wacc - final.ufcf) / (tvM + final.ufcf);
 
-  const blended = (gordon.perShare + exit.perShare) / 2;
+  const blended = gordon.perShare != null && exit.perShare != null ? (gordon.perShare + exit.perShare) / 2 : null;
   return { hist, proj, stats, wacc, waccBuild: computeWacc(a), sumPv, gordon, exit, blended, final };
 }
 

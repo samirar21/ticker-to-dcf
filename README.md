@@ -14,7 +14,20 @@ SEC_USER_AGENT="Your Name you@example.com" npm start
 
 Then open http://localhost:3000 (or deep-link straight to a company: `http://localhost:3000/#AAPL`).
 
-> The SEC asks every API client to identify itself with a name and email in the User-Agent. Set `SEC_USER_AGENT` to yours.
+> The SEC requires every API client to identify itself with a name and email in the User-Agent. Set `SEC_USER_AGENT` to yours; the API returns a clear error until you do.
+
+## Deploy (Vercel, free)
+
+The repo is ready to deploy as is: `public/` is served as static files and `api/company/[ticker].js` runs as a serverless function (`vercel.json` sets this up). There's no build step.
+
+1. Go to **[vercel.com/new](https://vercel.com/new)** and sign in with GitHub.
+2. Import **`ticker-to-dcf`**. Leave the framework preset as **Other**.
+3. Under **Environment Variables**, add `SEC_USER_AGENT` = `Your Name your@email.com`.
+4. Click **Deploy**. You get a URL like `ticker-to-dcf.vercel.app`, and every push to `main` redeploys.
+
+Deep links work, e.g. `https://<your-app>.vercel.app/#NVDA`. API responses are cached at Vercel's edge for 15 minutes, so a link shared widely doesn't hammer the SEC.
+
+Want your own copy? [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsamirar21%2Fticker-to-dcf&env=SEC_USER_AGENT&envDescription=Your%20name%20and%20email%2C%20e.g.%20%22Jane%20Doe%20jane%40example.com%22.%20The%20SEC%20requires%20a%20contact%20on%20every%20request.&project-name=ticker-to-dcf&repository-name=ticker-to-dcf)
 
 ## What it does
 
@@ -41,12 +54,16 @@ Then open http://localhost:3000 (or deep-link straight to a company: `http://loc
 - Uses fiscal-year 10-K data, not LTM, and values as of the latest fiscal year end (no stub period).
 - Debt excludes operating leases; shares are basic shares outstanding from the 10-K cover page (or diluted weighted average), so there's no treasury-stock-method dilution.
 - Not suitable for banks/insurers (the app warns you). Use a DDM or P/B for those.
+- Yahoo Finance sometimes rate-limits cloud servers. If the live price can't be fetched, the app says so and you can type the price in.
 - XBRL tagging varies by company; equity-bridge inputs (price, shares, debt, cash) are editable if something looks off.
 
 ## Project layout
 
 ```
-server.js          zero-dependency HTTP server + /api/company/:ticker (EDGAR has no CORS, so we proxy)
+server.js          local zero-dependency HTTP server (EDGAR has no CORS, so the API proxies it)
+api/company/       Vercel serverless function for the same /api/company/:ticker route
+vercel.json        Vercel config: static files from public/, no build step
+lib/company.js     ticker → full payload (shared by server.js and the Vercel function)
 lib/edgar.js       ticker → CIK, companyfacts → clean annual financials
 lib/market.js      price, 52-week range, regression beta, risk-free rate
 public/dcf.js      pure DCF engine (shared by browser + tests)
