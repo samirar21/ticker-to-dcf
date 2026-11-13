@@ -170,7 +170,7 @@ function renderFootball(r, value) {
         ${Number.isFinite(value) ? `<div class="ff-line value" style="left:${pos(value)}%"><b>DCF ${px(value)}</b></div>` : ''}
       </div></div>
     </div>
-    <div class="legend"><span class="sw market"></span>Market-based <span class="sw dcf"></span>Intrinsic (DCF) <span class="sw scenario"></span>Scenario <span class="sw line-price"></span>Current price <span class="sw line-value"></span>Base case</div>`;
+    <div class="legend"><span><i class="sw market"></i>Market-based</span><span><i class="sw dcf"></i>Intrinsic (DCF)</span><span><i class="sw scenario"></i>Scenario</span><span><i class="sw line-price"></i>Current price</span><span><i class="sw line-value"></i>Base case</span></div>`;
 }
 
 function niceStep(raw) {
@@ -196,7 +196,8 @@ function sensTable(rows, cols, grid, colFmt) {
     if (v == null) return `<td class="${center ? 'center' : ''}">n/m</td>`;
     const up = a.price ? v / a.price - 1 : null;
     const t = up == null ? 0 : clamp(up, -0.6, 0.6) / 0.6;
-    const bg = t >= 0 ? `rgba(var(--pos-rgb), ${(t * 0.45).toFixed(3)})` : `rgba(var(--neg-rgb), ${(-t * 0.45).toFixed(3)})`;
+    // verdigris = above today's price, vermilion = below; intensity scales with the gap
+    const bg = `color-mix(in oklch, var(${t >= 0 ? '--patina' : '--vermilion'}) ${(Math.abs(t) * 34).toFixed(1)}%, transparent)`;
     const txt = sensMode === 'upside' && up != null ? `${up >= 0 ? '+' : ''}${(up * 100).toFixed(0)}%` : px(v);
     return `<td class="${center ? 'center' : ''}" style="background:${bg}">${txt}</td>`;
   };

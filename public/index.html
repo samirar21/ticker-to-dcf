@@ -9,20 +9,21 @@
   <meta property="og:description" content="Type a ticker. Pull 10-K financials from SEC EDGAR and value the company with a live DCF: WACC and terminal-growth sliders, sensitivity tables and a football field." />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f5eff'/><path d='M7 22l6-7 5 4 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='2' fill='%23ffba00'/><path d='M7 22l6-7 5 4 7-9' stroke='%23050403' stroke-width='2.6' fill='none' stroke-linecap='square' stroke-linejoin='miter'/></svg>" />
+  <link rel="preload" href="fonts/alumni-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="fonts/albert-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
-  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0b0f17" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#000000" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Ticker DCF" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="logo" aria-hidden="true"></span>Ticker&nbsp;→&nbsp;DCF</div>
+    <div class="brand"><span class="logo" aria-hidden="true"></span>Ticker&nbsp;›&nbsp;DCF</div>
     <form id="search" class="search" autocomplete="off">
       <input id="ticker" name="ticker" placeholder="Ticker, e.g. AAPL" aria-label="Ticker" spellcheck="false" />
       <button type="submit">Value it</button>
@@ -31,7 +32,7 @@
 
   <main id="app">
     <section id="empty" class="empty">
-      <h1>Type a ticker. Get a DCF.</h1>
+      <h1>Type a ticker. <span>Get a DCF.</span></h1>
       <p>Pulls historical financials from the 10-K filings in SEC EDGAR, projects unlevered free cash flow, and values the company two ways. You can drag every assumption and see the result update live.</p>
       <div class="chips">
         <button data-t="AAPL">AAPL</button><button data-t="MSFT">MSFT</button><button data-t="NVDA">NVDA</button>

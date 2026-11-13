@@ -57,6 +57,10 @@ Want your own copy? [![Deploy with Vercel](https://vercel.com/button)](https://v
 - Yahoo Finance sometimes rate-limits cloud servers. If the live price can't be fetched, the app says so and you can type the price in.
 - XBRL tagging varies by company; equity-bridge inputs (price, shares, debt, cash) are editable if something looks off.
 
+## Design
+
+The interface follows the Neo Kinpaku system: dark lacquer surfaces, kinpaku gold for the brand and the DCF itself, verdigris for "live" and upside, vermilion for downside. Hairlines instead of shadows, small radii, no blur. Type is Alumni Sans (display) and Albert Sans (body), self-hosted from `public/fonts/` under the SIL Open Font License; numbers in tables are set in mono because Albert Sans has no tabular figures. Motion is limited to short colour transitions and one entrance fade, and is switched off under `prefers-reduced-motion`.
+
 ## Project layout
 
 ```

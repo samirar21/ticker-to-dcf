@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1f5eff"/>
-  <!-- glyph kept inside the central ~60% so it survives maskable-icon cropping -->
-  <path d="M150 340 L222 256 L282 304 L366 196" stroke="#ffffff" stroke-width="36" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="366" cy="196" r="22" fill="#ffffff"/>
+  <!-- kinpaku tile, lacquer glyph; glyph kept inside the central ~60% so it survives maskable-icon cropping -->
+  <rect width="512" height="512" fill="#ffba00"/>
+  <path d="M150 340 L222 256 L282 304 L366 196" stroke="#050403" stroke-width="34" fill="none" stroke-linecap="square" stroke-linejoin="miter"/>
 </svg>
