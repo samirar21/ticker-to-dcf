@@ -95,16 +95,16 @@ main { max-width: 1360px; margin: 0 auto; padding: 24px 16px 40px; }
   font: 500 12px var(--font-mono); letter-spacing: .14em; transition: border-color .14s var(--ease), color .14s var(--ease);
 }
 .chips button:hover { border-color: var(--rule-strong); color: var(--kinpaku); }
-.spinner { width: 34px; height: 34px; margin: 0 auto 20px; border: 1px solid var(--rule); border-top-color: var(--kinpaku); border-radius: 50%; animation: spin .9s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { position: relative; width: min(240px, 60vw); height: 2px; margin: 0 auto 24px; background: var(--rule); overflow: hidden; }
+.spinner::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 36%; background: var(--kinpaku); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes sweep { from { transform: translateX(-110%); } to { transform: translateX(290%); } }
+@keyframes seam { from { transform: scaleX(0); } }
+@keyframes cell { from { opacity: 0; transform: scale(.9); } }
+@keyframes sheen { from { transform: translateX(-130%); } to { transform: translateX(130%); } }
 @keyframes pulse { 50% { opacity: .35; } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
 /* ---------- hero ---------- */
-/* Entrance: animate the content blocks, not #model itself. A transform on #model would re-anchor the
-   fixed mobile value bar to the page instead of the screen. */
-#model:not([hidden]) > .hero { animation: rise .36s var(--ease) backwards; }
-#model:not([hidden]) > .layout { animation: rise .42s var(--ease) 60ms backwards; }
 .hero { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
 .co-name { font: 100 clamp(2.8rem, 5vw, 4.2rem)/1.02 var(--font-display); letter-spacing: -0.01em; color: var(--champagne); }
 .co-meta { color: var(--faint); font-size: 13px; margin-top: 6px; }
@@ -289,10 +289,61 @@ table.sens { width: 100%; border-collapse: separate; border-spacing: 2px; font-s
   .table-scroll { margin: 0 -14px; padding: 0 14px; }
 }
 
-/* ---------- motion preferences ---------- */
+/* ---------- motion ----------
+   Everything here is decoration on top of a page that is complete without it, so it only applies
+   when the visitor hasn't asked for reduced motion. Rules of the house:
+   - sliders are direct manipulation: nothing animates while one is dragged
+   - one easing curve (--ease), no bounce
+   - never transform #model itself: that would re-anchor the fixed mobile value bar to the page */
+.panel.reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s var(--ease), transform .6s var(--ease); }
+.panel.reveal.seen { opacity: 1; transform: none; }
+.kpi.accent { position: relative; overflow: hidden; }
+.search button, .ghost, .chips button, .seg button { transition-property: background-color, border-color, color, transform; transition-duration: .14s; transition-timing-function: var(--ease); }
+.search button:active, .ghost:active, .chips button:active, .seg button:active { transform: scale(.97); }
+.kpi { transition: border-color .2s var(--ease); }
+.kpi:not(.accent):hover { border-color: var(--rule-strong); }
+.model-table tbody tr { transition: background-color .12s var(--ease); }
+.model-table tbody tr:hover td { background-color: var(--graphite-2); }
+.sens td { transition: outline-color .12s var(--ease); }
+.sens td:hover { outline: 1px solid var(--rule-strong); outline-offset: -1px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* page load: the gold seam draws across, the headline and tickers rise in */
+  .topbar { border-bottom-color: transparent; }
+  .topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--rule-strong); transform-origin: left; animation: seam 1.2s var(--ease) backwards; }
+  .empty:not([hidden]) > * { animation: rise .7s var(--ease) backwards; }
+  .empty:not([hidden]) > :nth-child(2) { animation-delay: .12s; }
+  .empty:not([hidden]) > .chips { animation: none; }
+  .chips button { animation: rise .5s var(--ease) backwards; animation-delay: calc(.26s + var(--i, 0) * 45ms); }
+  .chips button:nth-child(1) { --i: 0; } .chips button:nth-child(2) { --i: 1; } .chips button:nth-child(3) { --i: 2; } .chips button:nth-child(4) { --i: 3; }
+  .chips button:nth-child(5) { --i: 4; } .chips button:nth-child(6) { --i: 5; } .chips button:nth-child(7) { --i: 6; }
+
+  /* loading: a gold segment sweeps the calibration line */
+  .spinner::after { animation: sweep 1.15s cubic-bezier(.6, 0, .4, 1) infinite; }
+
+  /* a company loads: name, then the four figures in sequence, then the assumptions panel */
+  #model:not([hidden]) .co-name, #model:not([hidden]) .co-meta { animation: rise .5s var(--ease) backwards; }
+  #model:not([hidden]) .co-meta { animation-delay: 70ms; }
+  #model:not([hidden]) .kpi { animation: rise .5s var(--ease) backwards; animation-delay: calc(90ms + var(--i, 0) * 70ms); }
+  .kpi:nth-child(1) { --i: 0; } .kpi:nth-child(2) { --i: 1; } .kpi:nth-child(3) { --i: 2; } .kpi:nth-child(4) { --i: 3; }
+  #model:not([hidden]) .warn-box { animation: rise .5s var(--ease) .3s backwards; }
+  #model:not([hidden]) .controls { animation: rise .55s var(--ease) .16s backwards; }
+  /* one pass of light across the gold tile */
+  #model:not([hidden]) .kpi.accent::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(105deg, transparent 38%, oklch(100% 0 0 / .42) 50%, transparent 62%);
+    animation: sheen 1.1s var(--ease) .55s both;
+  }
+
+  /* sensitivity cells cascade from the top-left corner (on load and on discrete changes, never on drag) */
+  #model.fx .panel.seen table.sens td { animation: cell .42s var(--ease) backwards; animation-delay: calc(var(--d, 0) * 26ms); }
+  /* walkthrough steps arrive one at a time */
+  #model.fx-enter .panel.seen #walk li { animation: rise .5s var(--ease) backwards; animation-delay: calc(.1s + var(--i, 0) * 80ms); }
+  #walk li:nth-child(1) { --i: 0; } #walk li:nth-child(2) { --i: 1; } #walk li:nth-child(3) { --i: 2; }
+  #walk li:nth-child(4) { --i: 3; } #walk li:nth-child(5) { --i: 4; } #walk li:nth-child(6) { --i: 5; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; }
-  #model:not([hidden]) > .hero, #model:not([hidden]) > .layout { animation: none; }
-  .spinner { animation: pulse 1.6s ease-in-out infinite; border-color: var(--kinpaku); }
-  .search button:hover { transform: none; }
+  .search button:hover, .search button:active, .ghost:active, .chips button:active, .seg button:active { transform: none; }
 }

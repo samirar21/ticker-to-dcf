@@ -82,7 +82,7 @@ function buildControls() {
     });
   }
   document.addEventListener('click', (e) => {
-    if (e.target.matches('[data-act="capm"]')) { e.preventDefault(); a.useCustomWacc = false; schedule(); }
+    if (e.target.matches('[data-act="capm"]')) { e.preventDefault(); a.useCustomWacc = false; schedule('tween'); }
   });
 }
 
@@ -97,30 +97,64 @@ function syncControls(r) {
 }
 
 // ---------- rendering ----------
-let raf = 0;
-const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(render); };
+// Every render carries a motion mode:
+//   'drag'  — a slider or typed input is changing: update instantly, never animate (direct manipulation)
+//   'tween' — a discrete change (reset, method toggle…): numbers and chart glide from old to new
+//   'enter' — a company just loaded: count up, draw the chart in
+const motionOK = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const RANK = { drag: 0, tween: 1, enter: 2 };
+let raf = 0, pendingMode = 'drag';
+const schedule = (mode = 'drag') => {
+  if (RANK[mode] > RANK[pendingMode]) pendingMode = mode;
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(() => { const m = pendingMode; pendingMode = 'drag'; render(m); });
+};
+
+// Animated number: counts from the value currently on screen (or from 0 on enter) to the new one.
+const numState = new Map();
+function setNum(sel, value, fmt, mode) {
+  const el = $(sel), st = numState.get(sel) || { shown: null, raf: 0 };
+  numState.set(sel, st);
+  cancelAnimationFrame(st.raf);
+  const to = value != null && Number.isFinite(value) ? value : null;
+  const from = mode === 'enter' ? 0 : st.shown;
+  if (!motionOK || mode === 'drag' || to == null || from == null || from === to) { el.textContent = fmt(to); st.shown = to; return; }
+  const t0 = performance.now(), dur = mode === 'enter' ? 900 : 450;
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / dur), cur = from + (to - from) * (1 - (1 - k) ** 4);
+    st.shown = k < 1 ? cur : to;
+    el.textContent = fmt(st.shown);
+    if (k < 1) st.raf = requestAnimationFrame(step);
+  };
+  st.raf = requestAnimationFrame(step);
+}
+const upFmt = (v) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${pct(v)}`);
 
 function headline(r) { return method === 'gordon' ? r.gordon.perShare : method === 'exit' ? r.exit.perShare : r.blended; }
 
-function render() {
+function render(mode = 'drag') {
   if (a.terminalGrowth >= effectiveWacc(a) - 0.005) a.terminalGrowth = Math.max(0, Math.round((effectiveWacc(a) - 0.0075) / 0.0025) * 0.0025);
   const r = runDCF(data, a);
   syncControls(r);
   const value = headline(r);
   const up = a.price ? value / a.price - 1 : null;
-  $('#k-price').textContent = px(a.price);
-  $('#k-value').textContent = px(value);
+  const model = $('#model');
+  model.classList.toggle('fx', motionOK && mode !== 'drag');       // lets re-rendered cells animate in
+  model.classList.toggle('fx-enter', motionOK && mode === 'enter');
+  setNum('#k-price', a.price, px, mode);
+  setNum('#k-value', value, px, mode);
   $('#k-method').textContent = `(${method === 'gordon' ? 'perpetuity' : method === 'exit' ? 'exit multiple' : 'blended'})`;
   const ku = $('#k-upside');
-  ku.textContent = up == null ? '—' : `${up >= 0 ? '+' : ''}${pct(up)}`;
+  setNum('#k-upside', up, upFmt, mode);
   ku.className = up == null ? '' : up >= 0 ? 'pos' : 'neg';
-  $('#k-wacc').textContent = pct(r.wacc);
-  $('#m-value').textContent = px(value);
-  $('#m-upside').textContent = ku.textContent;
+  setNum('#k-wacc', r.wacc, pct, mode);
+  setNum('#m-value', value, px, mode);
+  setNum('#m-upside', up, upFmt, mode);
   $('#m-upside').className = ku.className;
   $('#m-rates').textContent = `${pct(r.wacc)} · ${pct(a.terminalGrowth, 2)}`;
   renderWaccTable(r);
-  renderFootball(r, value);
+  renderFootball(r, value, mode);
   renderSensitivity(r);
   renderSummary(r);
   renderTable(r);
@@ -137,7 +171,39 @@ function renderWaccTable(r) {
     <tr class="tot"><td>WACC (CAPM)</td><td>${pct(w.wacc, 2)}</td></tr></table>`;
 }
 
-function renderFootball(r, value) {
+// Football-field motion. Bars are keyed by label so a re-render can glide each one from where it was.
+const ffSnapshot = () => {
+  const snap = new Map();
+  for (const row of $$('#football .ff-row')) {
+    const bar = $('.ff-bar', row);
+    if (bar) snap.set($('.ff-label strong', row).textContent, { left: bar.style.left, width: bar.style.width });
+  }
+  for (const line of $$('#football .ff-line')) snap.set(line.classList.contains('value') ? '__value' : '__price', { left: line.style.left });
+  return snap;
+};
+function ffTween(snap) {
+  for (const row of $$('#football .ff-row')) {
+    const bar = $('.ff-bar', row), old = bar && snap.get($('.ff-label strong', row).textContent);
+    if (old) bar.animate([{ left: old.left, width: old.width }, { left: bar.style.left, width: bar.style.width }], { duration: 520, easing: EASE });
+  }
+  for (const line of $$('#football .ff-line')) {
+    const old = snap.get(line.classList.contains('value') ? '__value' : '__price');
+    if (old) line.animate([{ left: old.left }, { left: line.style.left }], { duration: 520, easing: EASE });
+  }
+}
+let ffEnterPending = false;
+function ffEnter() {
+  ffEnterPending = false;
+  $$('#football .ff-bar').forEach((bar, i) => {
+    const delay = i * 80;
+    bar.animate([{ width: '0%' }, { width: bar.style.width }], { duration: 760, delay, easing: EASE, fill: 'backwards' });
+    for (const label of $$('span', bar)) label.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: delay + 420, fill: 'backwards' });
+  });
+  $$('#football .ff-line').forEach((line, i) => line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, delay: 620 + i * 140, fill: 'backwards' }));
+}
+
+function renderFootball(r, value, mode) {
+  const snap = motionOK && mode === 'tween' ? ffSnapshot() : null;
   const bars = footballField(data, a);
   const marks = [a.price, value].filter((v) => v != null && Number.isFinite(v));
   const all = bars.flatMap((b) => [b.lo, b.hi]).concat(marks).filter((v) => Number.isFinite(v));
@@ -171,6 +237,11 @@ function renderFootball(r, value) {
       </div></div>
     </div>
     <div class="legend"><span><i class="sw market"></i>Market-based</span><span><i class="sw dcf"></i>Intrinsic (DCF)</span><span><i class="sw scenario"></i>Scenario</span><span><i class="sw line-price"></i>Current price</span><span><i class="sw line-value"></i>Base case</span></div>`;
+  if (snap) ffTween(snap);
+  else if (motionOK && mode === 'enter') {
+    // draw in now if the chart is on screen, otherwise when it scrolls into view
+    if ($('#football').closest('.panel').classList.contains('seen')) ffEnter(); else ffEnterPending = true;
+  }
 }
 
 function niceStep(raw) {
@@ -193,13 +264,13 @@ function renderSensitivity(r) {
 function sensTable(rows, cols, grid, colFmt) {
   const cell = (v, i, j) => {
     const center = i === 2 && j === 2;
-    if (v == null) return `<td class="${center ? 'center' : ''}">n/m</td>`;
+    if (v == null) return `<td class="${center ? 'center' : ''}" style="--d:${i + j}">n/m</td>`;
     const up = a.price ? v / a.price - 1 : null;
     const t = up == null ? 0 : clamp(up, -0.6, 0.6) / 0.6;
     // verdigris = above today's price, vermilion = below; intensity scales with the gap
     const bg = `color-mix(in oklch, var(${t >= 0 ? '--patina' : '--vermilion'}) ${(Math.abs(t) * 34).toFixed(1)}%, transparent)`;
     const txt = sensMode === 'upside' && up != null ? `${up >= 0 ? '+' : ''}${(up * 100).toFixed(0)}%` : px(v);
-    return `<td class="${center ? 'center' : ''}" style="background:${bg}">${txt}</td>`;
+    return `<td class="${center ? 'center' : ''}" style="--d:${i + j};background:${bg}">${txt}</td>`;
   };
   return `<table class="sens"><thead><tr><th></th>${cols.map((c) => `<th>${colFmt(c)}</th>`).join('')}</tr></thead>
     <tbody>${rows.map((rv, i) => `<tr><th>${pct(rv, 1)}</th>${grid[i].map((v, j) => cell(v, i, j)).join('')}</tr>`).join('')}</tbody></table>`;
@@ -304,6 +375,22 @@ function bindBridgeInputs() {
   on('#in-cash', (v) => (a.cash = v * U));
 }
 
+// ---------- scroll reveal ----------
+// Result panels fade up the first time they scroll into view (set up only when motion is allowed,
+// so without it nothing is ever hidden).
+const revealPanels = motionOK && 'IntersectionObserver' in window ? $$('.main-col > .panel') : [];
+const revealIO = revealPanels.length ? new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    if (!e.isIntersecting) continue;
+    e.target.classList.add('seen');
+    revealIO.unobserve(e.target);
+    if (ffEnterPending && e.target.contains($('#football'))) ffEnter();
+  }
+}, { rootMargin: '0px 0px -8% 0px' }) : null;
+function revealReset() {
+  for (const p of revealPanels) { p.classList.add('reveal'); p.classList.remove('seen'); revealIO.unobserve(p); revealIO.observe(p); }
+}
+
 // ---------- loading ----------
 function show(id) {
   for (const s of ['empty', 'loading', 'error', 'model']) $(`#${s}`).hidden = s !== id;
@@ -335,7 +422,8 @@ async function load(ticker) {
     syncBridgeInputs();
     $('#midYear').checked = a.midYear;
     show('model');
-    render();
+    revealReset();
+    render('enter');
     document.title = `${data.ticker} DCF · Ticker to DCF`;
   } catch (err) {
     $('#error-msg').textContent = err.message;
@@ -348,13 +436,13 @@ buildControls();
 bindBridgeInputs();
 $('#search').addEventListener('submit', (e) => { e.preventDefault(); load($('#ticker').value); });
 $$('.chips button').forEach((b) => b.addEventListener('click', () => load(b.dataset.t)));
-$('#reset').addEventListener('click', () => { a = structuredClone(defaults); syncBridgeInputs(); $('#midYear').checked = a.midYear; schedule(); });
-$('#midYear').addEventListener('change', (e) => { a.midYear = e.target.checked; schedule(); });
+$('#reset').addEventListener('click', () => { a = structuredClone(defaults); syncBridgeInputs(); $('#midYear').checked = a.midYear; schedule('tween'); });
+$('#midYear').addEventListener('change', (e) => { a.midYear = e.target.checked; schedule('tween'); });
 $$('[data-method]').forEach((b) => b.addEventListener('click', () => {
-  method = b.dataset.method; $$('[data-method]').forEach((x) => x.classList.toggle('on', x === b)); schedule();
+  method = b.dataset.method; $$('[data-method]').forEach((x) => x.classList.toggle('on', x === b)); schedule('tween');
 }));
 $$('#sens-mode button').forEach((b) => b.addEventListener('click', () => {
-  sensMode = b.dataset.mode; $$('#sens-mode button').forEach((x) => x.classList.toggle('on', x === b)); schedule();
+  sensMode = b.dataset.mode; $$('#sens-mode button').forEach((x) => x.classList.toggle('on', x === b)); schedule('tween');
 }));
 $('#csv').addEventListener('click', downloadCsv);
 window.addEventListener('hashchange', () => { const t = location.hash.slice(1); if (t && t !== data?.ticker) load(t); });

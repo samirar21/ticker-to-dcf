@@ -59,7 +59,7 @@ Want your own copy? [![Deploy with Vercel](https://vercel.com/button)](https://v
 
 ## Design
 
-The interface follows the Neo Kinpaku system: dark lacquer surfaces, kinpaku gold for the brand and the DCF itself, verdigris for "live" and upside, vermilion for downside. Hairlines instead of shadows, small radii, no blur. Type is Alumni Sans (display) and Albert Sans (body), self-hosted from `public/fonts/` under the SIL Open Font License; numbers in tables are set in mono because Albert Sans has no tabular figures. Motion is limited to short colour transitions and one entrance fade, and is switched off under `prefers-reduced-motion`.
+The interface follows the Neo Kinpaku system: dark lacquer surfaces, kinpaku gold for the brand and the DCF itself, verdigris for "live" and upside, vermilion for downside. Hairlines instead of shadows, small radii, no blur. Type is Alumni Sans (display) and Albert Sans (body), self-hosted from `public/fonts/` under the SIL Open Font License; numbers in tables are set in mono because Albert Sans has no tabular figures. Motion follows one rule: sliders are direct manipulation, so nothing animates while one is dragged. Loading a company counts the headline figures up, draws the football field in and reveals panels as they scroll into view; discrete changes (reset, method toggle) glide numbers and bars from old to new. All of it is switched off under `prefers-reduced-motion`.
 
 ## Project layout
 
